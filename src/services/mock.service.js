@@ -2,6 +2,7 @@ const mockFactory = require("./mock-data.factory");
 const mockRepository = require("../repositories/mock.repository");
 const AppError = require("../errors/app.error");
 const { USER_ROLE } = require("../constants");
+const logger = require("../config/logger.config");
 
 const MAX_MOCK_QTY = 100;
 
@@ -17,6 +18,7 @@ const validateQty = (qty) => {
     parsedQty < 1 ||
     parsedQty > MAX_MOCK_QTY
   ) {
+    logger.warning(`Cantidad de mocks inválida recibida: ${qty}`);
     throw new AppError("INVALID_MOCK_QTY");
   }
 
@@ -24,11 +26,22 @@ const validateQty = (qty) => {
 };
 
 const getMockUsers = (qty) => {
-  return mockFactory.generateMockUsers(validateQty(qty), USER_ROLE.USER);
+  const validatedQty = validateQty(qty);
+  const users = mockFactory.generateMockUsers(validatedQty, USER_ROLE.USER);
+
+  logger.info(`Mocks generados: ${validatedQty} usuarios`);
+  return users;
 };
 
 const getMockCouriers = (qty) => {
-  return mockFactory.generateMockUsers(validateQty(qty), USER_ROLE.COURIER);
+  const validatedQty = validateQty(qty);
+  const couriers = mockFactory.generateMockUsers(
+    validatedQty,
+    USER_ROLE.COURIER,
+  );
+
+  logger.info(`Mocks generados: ${validatedQty} repartidores`);
+  return couriers;
 };
 
 const createMockDataset = (qty) => {
@@ -42,6 +55,10 @@ const createMockDataset = (qty) => {
     );
     const orders = mockFactory.generateMockOrders(validatedQty, users);
     const deliveries = mockFactory.generateMockDeliveries(orders, couriers);
+
+    logger.info(
+      `Conjunto de mocks generado: ${validatedQty} registros por tipo`,
+    );
 
     return { users, couriers, orders, deliveries };
   } catch (error) {
@@ -63,6 +80,12 @@ const seedMockDataset = async (qty) => {
     orders: dataset.orders,
     deliveries: dataset.deliveries,
   });
+
+  logger.info(
+    `Mocks guardados en MongoDB: ${dataset.users.length} usuarios, ` +
+      `${dataset.couriers.length} repartidores, ${saved.orders} pedidos y ` +
+      `${saved.deliveries} entregas`,
+  );
 
   return {
     insertados: {

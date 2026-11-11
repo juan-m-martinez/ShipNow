@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entrega Módulo 3 — Manejo profesional de errores
+## Pre-entrega Módulo 4: Logging y monitoreo básico
 
 ## Descripción
 
@@ -15,6 +15,8 @@ API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando un
 - **Mongoose:** → ODM que conecta la aplicación con MongoDB y define los modelos de datos.
 - **dotenv:** → carga variables de entorno desde el archivo `.env`.
 - **Faker:** → genera nombres y otros datos ficticios en español para probar la API.
+- **Winston:** → registra eventos de la aplicación con distintos niveles de importancia.
+- **winston-daily-rotate-file:** → separa los registros en archivos diarios y limita el período de conservación.
 - **npm:** → instala y administra las dependencias y los comandos del proyecto.
 - **Git y GitHub:** → controlan las versiones del código y alojan el repositorio remoto.
 
@@ -61,6 +63,21 @@ npm start
 
 - `GET /api/products`: devuelve productos disponibles que tengan stock.
 - `GET /api/users`: devuelve la lista de usuarios.
+
+### Prueba del logger
+
+`GET /api/logger/test` genera un evento en cada nivel (`debug`, `http`, `info`, `warning`, `error` y `fatal`) y devuelve una confirmación. Para probarlo, iniciá el servidor y abrí `http://localhost:3000/api/logger/test`.
+
+## Logging
+
+ShipNow usa Winston para registrar eventos. En desarrollo se muestran todos los niveles; en producción, el registro comienza en `info`.
+
+Los archivos se generan en `logs/`:
+
+- `app-AAAA-MM-DD.log`: registra los eventos según el nivel configurado para el entorno.
+- `error-AAAA-MM-DD.log`: registra únicamente los niveles `error` y `fatal`.
+
+Los archivos rotan diariamente y se conservan por 14 días. La carpeta `logs/` está excluida de Git.
 
 ### Endpoints de mocking
 
@@ -120,10 +137,12 @@ ShipNow/
 │   ├── server.js                       # Conecta con MongoDB e inicia el servidor.
 │   ├── config/
 │   │   ├── database.config.js          # Gestiona la conexión con MongoDB.
-│   │   └── env.config.js               # Carga y valida PORT, MONGODB_URI y NODE_ENV.
+│   │   ├── env.config.js               # Carga y valida PORT, MONGODB_URI y NODE_ENV.
+│   │   └── logger.config.js            # Configura niveles, consola y archivos rotativos de Winston.
 │   ├── constants/
 │   │   └── index.js                    # Define roles, estados y prioridades válidos.
 │   ├── controllers/
+│   │   ├── logger.controller.js        # Emite los niveles disponibles para probar el logger.
 │   │   ├── mock.controller.js          # Atiende las solicitudes HTTP de mocking.
 │   │   ├── product.controller.js       # Atiende las solicitudes HTTP de productos.
 │   │   └── user.controller.js          # Atiende las solicitudes HTTP de usuarios.
@@ -143,6 +162,7 @@ ShipNow/
 │   │   ├── product.repository.js       # Consulta productos y selecciona sus campos.
 │   │   └── user.repository.js          # Consulta usuarios y selecciona sus campos.
 │   ├── routes/
+│   │   ├── logger.routes.js            # Conecta /api/logger/test con su Controller.
 │   │   ├── mock.routes.js              # Conecta /api/mocks con su Controller.
 │   │   ├── product.routes.js           # Conecta /api/products con su Controller.
 │   │   └── user.routes.js              # Conecta /api/users con su Controller.
