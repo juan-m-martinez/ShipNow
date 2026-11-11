@@ -1,22 +1,56 @@
 const mockFactory = require("./mock-data.factory");
 const mockRepository = require("../repositories/mock.repository");
+const AppError = require("../errors/app.error");
 const { USER_ROLE } = require("../constants");
 
+const MAX_MOCK_QTY = 100;
+
+const validateQty = (qty) => {
+  const isSupportedType = typeof qty === "string" || typeof qty === "number";
+  const isBlank = typeof qty === "string" && qty.trim() === "";
+  const parsedQty = Number(qty);
+
+  if (
+    !isSupportedType ||
+    isBlank ||
+    !Number.isInteger(parsedQty) ||
+    parsedQty < 1 ||
+    parsedQty > MAX_MOCK_QTY
+  ) {
+    throw new AppError("INVALID_MOCK_QTY");
+  }
+
+  return parsedQty;
+};
+
 const getMockUsers = (qty) => {
-  return mockFactory.generateMockUsers(qty, USER_ROLE.USER);
+  return mockFactory.generateMockUsers(validateQty(qty), USER_ROLE.USER);
 };
 
 const getMockCouriers = (qty) => {
-  return mockFactory.generateMockUsers(qty, USER_ROLE.COURIER);
+  return mockFactory.generateMockUsers(validateQty(qty), USER_ROLE.COURIER);
 };
 
 const createMockDataset = (qty) => {
-  const users = getMockUsers(qty);
-  const couriers = getMockCouriers(qty);
-  const orders = mockFactory.generateMockOrders(qty, users);
-  const deliveries = mockFactory.generateMockDeliveries(orders, couriers);
+  const validatedQty = validateQty(qty);
 
-  return { users, couriers, orders, deliveries };
+  try {
+    const users = mockFactory.generateMockUsers(validatedQty, USER_ROLE.USER);
+    const couriers = mockFactory.generateMockUsers(
+      validatedQty,
+      USER_ROLE.COURIER,
+    );
+    const orders = mockFactory.generateMockOrders(validatedQty, users);
+    const deliveries = mockFactory.generateMockDeliveries(orders, couriers);
+
+    return { users, couriers, orders, deliveries };
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    throw new AppError("MOCK_GENERATION_FAILED");
+  }
 };
 
 const getMockDataset = (qty) => createMockDataset(qty);

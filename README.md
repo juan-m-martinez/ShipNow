@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entrega Módulo 2: Mocking y carga de datos de prueba en ShipNow
+## Pre-entrega Módulo 3 — Manejo profesional de errores
 
 ## Descripción
 
@@ -80,6 +80,31 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:3000/api/mocks/seed?qty=2"
 
 La respuesta informa cuántos usuarios, repartidores, pedidos y entregas se insertaron. Cada llamada a `seed` crea nuevos registros; no elimina los que ya existen.
 
+## Manejo de errores
+
+Los errores se centralizan mediante `AppError`, el diccionario de errores y el middleware global. La API responde con una estructura uniforme:
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "INVALID_MOCK_QTY",
+    "message": "qty debe ser un número entero entre 1 y 100."
+  }
+}
+```
+
+El `code` identifica el error y `message` explica el problema. El estado HTTP corresponde al tipo de error; por ejemplo, las cantidades inválidas responden `400` y los errores al guardar mocks responden `500`.
+
+Para probar errores de cantidad en mocks, iniciá la API y abrí:
+
+- `GET http://localhost:3000/api/mocks/users?qty=-1`: valor negativo; debe responder `400` con `INVALID_MOCK_QTY`.
+- `GET http://localhost:3000/api/mocks/users?qty=abc`: valor no numérico; debe responder `400` con `INVALID_MOCK_QTY`.
+- `GET http://localhost:3000/api/mocks/users?qty=101`: supera el máximo permitido; debe responder `400` con `INVALID_MOCK_QTY`.
+- `GET http://localhost:3000/api/ruta-inexistente`: ruta desconocida; debe responder `404` con `ROUTE_NOT_FOUND`.
+
+Si falla la inserción de datos de prueba en MongoDB, `POST /api/mocks/seed?qty=2` responde con `MOCK_PERSISTENCE_FAILED` usando la misma estructura.
+
 ## Separación entre Service y Repository
 
 El Controller recibe la solicitud HTTP y delega la operación al Service. El Service aplica reglas de negocio; por ejemplo, excluye productos sin stock. El Repository concentra las consultas a MongoDB y la selección de campos.
@@ -99,9 +124,15 @@ ShipNow/
 │   ├── constants/
 │   │   └── index.js                    # Define roles, estados y prioridades válidos.
 │   ├── controllers/
-│   │   ├── mock.controller.js          # Valida qty y gestiona las solicitudes de mocking.
+│   │   ├── mock.controller.js          # Atiende las solicitudes HTTP de mocking.
 │   │   ├── product.controller.js       # Atiende las solicitudes HTTP de productos.
 │   │   └── user.controller.js          # Atiende las solicitudes HTTP de usuarios.
+│   ├── errors/
+│   │   ├── app.error.js                # Crea errores personalizados a partir de códigos.
+│   │   └── error.dictionary.js         # Mapea códigos de error a estados y mensajes.
+│   ├── middlewares/
+│   │   ├── error.middleware.js         # Devuelve las respuestas de error en formato común.
+│   │   └── not-found.middleware.js     # Convierte rutas inexistentes en ROUTE_NOT_FOUND.
 │   ├── models/
 │   │   ├── delivery.model.js           # Define entregas y referencias a pedidos y repartidores.
 │   │   ├── order.model.js              # Define pedidos y su referencia al usuario.
@@ -117,7 +148,7 @@ ShipNow/
 │   │   └── user.routes.js              # Conecta /api/users con su Controller.
 │   └── services/
 │       ├── mock-data.factory.js        # Genera usuarios, repartidores, pedidos y entregas.
-│       ├── mock.service.js             # Coordina la generación y la carga de datos simulados.
+│       ├── mock.service.js             # Valida qty y coordina la generación y carga de mocks.
 │       ├── product.service.js          # Aplica reglas de negocio para productos.
 │       └── user.service.js             # Prepara los datos de usuarios para la respuesta.
 ├── .env.example                        # Plantilla de variables de entorno sin datos privados.
