@@ -1,5 +1,7 @@
 # ShipNow API
 
+## Pre-entrega Módulo 1: base profesional de ShipNow con capas y entorno
+
 ## Descripción
 
 API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando una arquitectura por capas.
