@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entrega Módulo 4: Logging y monitoreo básico
+## Pre-entrega Módulo 5 — Documentación de API con Swagger
 
 ## Descripción
 
@@ -17,6 +17,8 @@ API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando un
 - **Faker:** → genera nombres y otros datos ficticios en español para probar la API.
 - **Winston:** → registra eventos de la aplicación con distintos niveles de importancia.
 - **winston-daily-rotate-file:** → separa los registros en archivos diarios y limita el período de conservación.
+- **swagger-jsdoc:** → genera la especificación OpenAPI a partir de las anotaciones de las rutas.
+- **swagger-ui-express:** → publica la documentación interactiva de la API.
 - **npm:** → instala y administra las dependencias y los comandos del proyecto.
 - **Git y GitHub:** → controlan las versiones del código y alojan el repositorio remoto.
 
@@ -58,6 +60,16 @@ Desde la raíz del proyecto:
 npm install
 npm start
 ```
+
+## Documentación de la API
+
+Con el servidor en ejecución, abrí [http://localhost:3000/api/docs](http://localhost:3000/api/docs) para consultar y probar la documentación interactiva de Swagger UI.
+
+La documentación incluye las rutas de Users, Products, Mocks y Logger, además de los esquemas reutilizables de usuario, producto, pedido, entrega, ítem de pedido y respuestas. Orders y Deliveries aparecen como etiquetas porque `/api/mocks/data` genera esos registros relacionados; el proyecto todavía no tiene endpoints propios para consultar o modificar pedidos y entregas. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
+
+En Swagger, desplegá una operación, presioná **Try it out**, completá los parámetros si corresponde y elegí **Execute**. Para probar la carga de datos, usá `POST /api/mocks/seed` con `qty` en la query; no requiere body.
+
+El endpoint `GET /api/logger/test` permite validar los niveles de logging y no representa una operación de negocio.
 
 ## Endpoints disponibles
 
@@ -138,7 +150,8 @@ ShipNow/
 │   ├── config/
 │   │   ├── database.config.js          # Gestiona la conexión con MongoDB.
 │   │   ├── env.config.js               # Carga y valida PORT, MONGODB_URI y NODE_ENV.
-│   │   └── logger.config.js            # Configura niveles, consola y archivos rotativos de Winston.
+│   │   ├── logger.config.js             # Configura niveles, consola y archivos rotativos de Winston.
+│   │   └── swagger.config.js            # Define OpenAPI, esquemas y archivos de rutas a documentar.
 │   ├── constants/
 │   │   └── index.js                    # Define roles, estados y prioridades válidos.
 │   ├── controllers/
