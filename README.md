@@ -2,53 +2,61 @@
 
 ## Descripción
 
-API REST desarrollada con Node.js, Express y MongoDB,
-implementada utilizando una arquitectura por capas.
+API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando una arquitectura por capas.
 
 ## Arquitectura
 
 La aplicación utiliza tres capas principales:
 
-- Controller
-- Service
-- Repository
+- **Controller:** gestiona las solicitudes HTTP y las respuestas.
+- **Service:** contiene las reglas y la lógica de negocio.
+- **Repository:** centraliza el acceso a MongoDB mediante Mongoose.
 
 El flujo de dependencias es:
 
-Controller → Service → Repository → MongoDB
+`Controller → Service → Repository → MongoDB`
 
-### Controller
+## Configuración local
 
-Gestiona las solicitudes HTTP y las respuestas.
+Asegurate de que el servicio de MongoDB esté en ejecución. Desde la raíz del proyecto, copiá la plantilla:
 
-### Service
+```powershell
+Copy-Item .env.example .env
+```
 
-Contiene las reglas y lógica de negocio.
+En `.env`, configurá:
 
-### Repository
-
-Centraliza el acceso a MongoDB mediante Mongoose.
-
-## Configuración
-
-Crear un archivo `.env` a partir de `.env.example`.
-
-Variables requeridas:
-
+```env
 PORT=3000
-MONGODB_URI=
+MONGODB_URI=mongodb://127.0.0.1:27017/shipnow
 NODE_ENV=development
+```
 
-## Instalación
+`.env` contiene la configuración local y no debe subirse al repositorio.
 
+## Instalación y ejecución
+
+Desde la raíz del proyecto:
+
+```powershell
 npm install
-
-## Ejecución
-
 npm start
+```
+
+## Endpoints disponibles
+
+- `GET /api/products`: devuelve productos disponibles que tengan stock.
+- `GET /api/users`: devuelve la lista de usuarios.
+
+## Separación entre Service y Repository
+
+El Controller recibe la solicitud HTTP y delega la operación al Service. El Service aplica reglas de negocio; por ejemplo, excluye productos sin stock. El Repository concentra las consultas a MongoDB y la selección de campos.
+
+Esta separación permite cambiar cómo se guardan o consultan los datos sin mover las reglas de negocio, y modificar esas reglas sin hacer que el Controller conozca Mongoose.
 
 ## Arquitectura de carpetas
 
+```text
 src/
 ├── config/
 ├── constants/
@@ -57,15 +65,4 @@ src/
 ├── repositories/
 ├── models/
 └── routes/
-
-## Separación de responsabilidades
-
-La separación permite evitar que los Controllers
-conozcan detalles de persistencia.
-
-El Repository encapsula las operaciones de MongoDB,
-mientras que el Service contiene las reglas de negocio.
-
-Esto facilita el mantenimiento, las pruebas y la
-posibilidad de cambiar la implementación de persistencia
-sin modificar los Controllers.
+```
