@@ -45,7 +45,7 @@ npm install
 
 ## Ejecución
 
-npm run dev
+npm start
 
 ## Arquitectura de carpetas
 
