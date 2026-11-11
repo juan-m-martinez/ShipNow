@@ -3,12 +3,38 @@ const PRODUCT_STATUS = Object.freeze({
   OUT_OF_STOCK: "OUT_OF_STOCK",
 });
 
+const ORDER_STATUS = Object.freeze({
+  PENDING: "PENDING",
+  ASSIGNED: "ASSIGNED",
+  IN_TRANSIT: "IN_TRANSIT",
+  DELIVERED: "DELIVERED",
+  CANCELLED: "CANCELLED",
+});
+
+const DELIVERY_STATUS = Object.freeze({
+  PENDING: "PENDING",
+  ASSIGNED: "ASSIGNED",
+  IN_TRANSIT: "IN_TRANSIT",
+  DELIVERED: "DELIVERED",
+  FAILED: "FAILED",
+});
+
+const ORDER_PRIORITY = Object.freeze({
+  LOW: "LOW",
+  MEDIUM: "MEDIUM",
+  HIGH: "HIGH",
+});
+
 const USER_ROLE = Object.freeze({
   ADMIN: "ADMIN",
   USER: "USER",
+  COURIER: "COURIER",
 });
 
 module.exports = {
   PRODUCT_STATUS,
+  ORDER_STATUS,
+  DELIVERY_STATUS,
+  ORDER_PRIORITY,
   USER_ROLE,
 };
