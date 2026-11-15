@@ -1,19 +1,37 @@
 const AppError = require("../errors/app.error");
 const logger = require("../config/logger.config");
+const multer = require("multer");
+
+const normalizeUploadError = (error) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") return new AppError("FILE_TOO_LARGE");
+    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      return new AppError("INVALID_FILE_FIELD");
+    }
+    return new AppError("FILE_UPLOAD_FAILED");
+  }
+
+  if (["EACCES", "EPERM", "ENOSPC", "EIO"].includes(error?.code)) {
+    return new AppError("FILE_SAVE_FAILED");
+  }
+
+  return error;
+};
 
 const errorMiddleware = (error, req, res, next) => {
   if (res.headersSent) {
     return next(error);
   }
 
-  let appError = error;
+  const normalizedError = normalizeUploadError(error);
+  let appError = normalizedError;
 
-  if (!(error instanceof AppError)) {
+  if (!(normalizedError instanceof AppError)) {
     const isInvalidData =
-      error?.name === "ValidationError" ||
-      error?.name === "CastError" ||
-      error?.code === 11000 ||
-      error?.type === "entity.parse.failed";
+      normalizedError?.name === "ValidationError" ||
+      normalizedError?.name === "CastError" ||
+      normalizedError?.code === 11000 ||
+      normalizedError?.type === "entity.parse.failed";
 
     appError = isInvalidData
       ? new AppError("INVALID_DATA")
@@ -25,7 +43,7 @@ const errorMiddleware = (error, req, res, next) => {
     `${appError.code}: ${appError.message}`;
 
   if (appError.statusCode >= 500) {
-    logger.error(logMessage, { stack: error?.stack });
+    logger.error(logMessage, { stack: normalizedError?.stack });
   } else {
     logger.warning(logMessage);
   }

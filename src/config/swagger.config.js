@@ -73,6 +73,10 @@ const swaggerOptions = {
               example: "ana@shipnow.test",
             },
             role: { type: "string", enum: ["ADMIN", "USER", "COURIER"] },
+            documents: {
+              type: "array",
+              items: { $ref: "#/components/schemas/FileMetadata" },
+            },
           },
         },
         Product: {
@@ -129,6 +133,39 @@ const swaggerOptions = {
                 "FAILED",
               ],
             },
+            proofs: {
+              type: "array",
+              items: { $ref: "#/components/schemas/FileMetadata" },
+            },
+          },
+        },
+        FileMetadata: {
+          type: "object",
+          required: [
+            "originalName",
+            "generatedName",
+            "path",
+            "mimeType",
+            "size",
+            "documentType",
+            "uploadedAt",
+          ],
+          properties: {
+            originalName: { type: "string", example: "comprobante.pdf" },
+            generatedName: { type: "string", example: "uuid.pdf" },
+            path: { type: "string", example: "deliveries/receipts/uuid.pdf" },
+            mimeType: { type: "string", example: "application/pdf" },
+            size: { type: "integer", example: 2048 },
+            documentType: {
+              type: "string",
+              enum: [
+                "IDENTITY",
+                "DRIVER_LICENSE",
+                "ADDRESS_PROOF",
+                "DELIVERY_RECEIPT",
+              ],
+            },
+            uploadedAt: { type: "string", format: "date-time" },
           },
         },
         OrderItem: {

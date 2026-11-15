@@ -115,8 +115,67 @@ router.post("/", orderController.createOrder);
  *           application/json:
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
+ *   put:
+ *     tags:
+ *       - Orders
+ *     summary: Actualizar un pedido
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               user: { type: string }
+ *               destination: { type: string }
+ *               priority: { type: string, enum: [LOW, MEDIUM, HIGH] }
+ *               status: { type: string, enum: [PENDING, ASSIGNED, IN_TRANSIT, DELIVERED, CANCELLED] }
+ *     responses:
+ *       "200":
+ *         description: Pedido actualizado.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 order: { $ref: "#/components/schemas/Order" }
+ *       "400":
+ *         description: ID o datos inválidos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ *       "404":
+ *         description: Pedido o usuario inexistente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
+ *   delete:
+ *     tags:
+ *       - Orders
+ *     summary: Eliminar un pedido
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       "200":
+ *         description: Pedido eliminado.
+ *       "404":
+ *         description: Pedido inexistente.
  */
 router.get("/:orderId", orderController.getOrderById);
+router.put("/:orderId", orderController.updateOrder);
+router.delete("/:orderId", orderController.deleteOrder);
 
 /**
  * @openapi

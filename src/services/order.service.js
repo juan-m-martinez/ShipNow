@@ -45,4 +45,60 @@ const updateOrderStatus = async (id, status) => {
   return order;
 };
 
-module.exports = { getOrders, getOrderById, createOrder, updateOrderStatus };
+const updateOrder = async (id, input = {}) => {
+  if (!mongoose.isValidObjectId(id)) throw new AppError("INVALID_DATA");
+  const allowedFields = ["user", "destination", "priority", "status"];
+  const fields = Object.keys(input);
+  if (fields.length === 0 || fields.some((field) => !allowedFields.includes(field))) {
+    throw new AppError("INVALID_DATA");
+  }
+
+  const changes = {};
+  if (input.user !== undefined) {
+    if (typeof input.user !== "string" || !mongoose.isValidObjectId(input.user)) {
+      throw new AppError("INVALID_DATA");
+    }
+    if (!(await userRepository.findUserById(input.user))) {
+      throw new AppError("USER_NOT_FOUND");
+    }
+    changes.user = input.user;
+  }
+  if (input.destination !== undefined) {
+    if (typeof input.destination !== "string" || !input.destination.trim()) {
+      throw new AppError("INVALID_DATA");
+    }
+    changes.destination = input.destination.trim();
+  }
+  if (input.priority !== undefined) {
+    if (!Object.values(ORDER_PRIORITY).includes(input.priority)) {
+      throw new AppError("INVALID_DATA");
+    }
+    changes.priority = input.priority;
+  }
+  if (input.status !== undefined) {
+    if (!Object.values(ORDER_STATUS).includes(input.status)) {
+      throw new AppError("INVALID_ORDER_STATUS");
+    }
+    changes.status = input.status;
+  }
+
+  const order = await orderRepository.updateOrder(id, changes);
+  if (!order) throw new AppError("ORDER_NOT_FOUND");
+  return order;
+};
+
+const deleteOrder = async (id) => {
+  if (!mongoose.isValidObjectId(id)) throw new AppError("INVALID_DATA");
+  const order = await orderRepository.deleteOrder(id);
+  if (!order) throw new AppError("ORDER_NOT_FOUND");
+  return order;
+};
+
+module.exports = {
+  getOrders,
+  getOrderById,
+  createOrder,
+  updateOrderStatus,
+  updateOrder,
+  deleteOrder,
+};

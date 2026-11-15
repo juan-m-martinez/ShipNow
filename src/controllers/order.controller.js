@@ -32,4 +32,28 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-module.exports = { getOrders, createOrder, getOrderById, updateOrderStatus };
+const updateOrder = async (req, res, next) => {
+  try {
+    return res.status(200).json({ order: await orderService.updateOrder(req.params.orderId, req.body) });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const deleteOrder = async (req, res, next) => {
+  try {
+    const order = await orderService.deleteOrder(req.params.orderId);
+    return res.status(200).json({ message: "Pedido eliminado", order });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = {
+  getOrders,
+  createOrder,
+  getOrderById,
+  updateOrderStatus,
+  updateOrder,
+  deleteOrder,
+};

@@ -1,10 +1,10 @@
 # ShipNow API
 
-## Pre-entrega Módulo 6 — Testing funcional con Mocha, Chai y Supertest
+## Pre-entrega Módulo 7 — Carga de archivos, documentos y comprobantes
 
 ## Descripción
 
-API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando una arquitectura por capas.
+API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando una arquitectura por capas. Incluye documentación Swagger, pruebas funcionales y carga de documentos y comprobantes asociados a usuarios y entregas.
 
 ## Tecnologías
 
@@ -19,6 +19,7 @@ API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando un
 - **winston-daily-rotate-file:** → separa los registros en archivos diarios y limita el período de conservación.
 - **swagger-jsdoc:** → genera la especificación OpenAPI a partir de las anotaciones de las rutas.
 - **swagger-ui-express:** → publica la documentación interactiva de la API.
+- **Multer:** → valida y almacena archivos recibidos mediante `multipart/form-data`.
 - **Mocha, Chai y Supertest:** → ejecutan pruebas funcionales HTTP y validan sus respuestas.
 - **npm:** → instala y administra las dependencias y los comandos del proyecto.
 - **Git y GitHub:** → controlan las versiones del código y alojan el repositorio remoto.
@@ -66,7 +67,7 @@ npm.cmd start
 
 Con el servidor en ejecución, abrí [http://localhost:3000/api/docs](http://localhost:3000/api/docs) para consultar y probar la documentación interactiva de Swagger UI.
 
-La documentación incluye las rutas de Users, Orders, Products, Mocks y Logger, además de los esquemas reutilizables de usuario, producto, pedido, entrega, ítem de pedido y respuestas. Orders permite listar, crear, buscar por ID y actualizar el estado de un pedido. Deliveries se genera como parte de los conjuntos de mocks y todavía no cuenta con endpoints propios. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
+La documentación incluye las rutas de Users, Orders, Products, Mocks, Deliveries y Logger, además de los esquemas reutilizables de usuario, pedido, entrega, archivos y respuestas. Orders y Deliveries permiten crear, listar, consultar, actualizar y eliminar registros. Deliveries también permite asociar comprobantes. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
 
 En Swagger, desplegá una operación, presioná **Try it out**, completá los parámetros si corresponde y elegí **Execute**. Para probar la carga de datos, usá `POST /api/mocks/seed` con `qty` en la query; no requiere body.
 
@@ -79,7 +80,18 @@ El endpoint `GET /api/logger/test` permite validar los niveles de logging y no r
 - `GET /api/orders`: devuelve los pedidos.
 - `POST /api/orders`: crea un pedido para un usuario existente. El body requiere `user` y `destination`; `priority` es opcional.
 - `GET /api/orders/:orderId`: devuelve un pedido por su ID.
+- `PUT /api/orders/:orderId`: actualiza los campos válidos de un pedido.
 - `PATCH /api/orders/:orderId/status`: actualiza el estado con un valor permitido (`PENDING`, `ASSIGNED`, `IN_TRANSIT`, `DELIVERED` o `CANCELLED`).
+- `DELETE /api/orders/:orderId`: elimina un pedido.
+- `GET /api/deliveries`: devuelve las entregas.
+- `POST /api/deliveries`: crea una entrega para un pedido existente, con repartidor opcional.
+- `GET /api/deliveries/:deliveryId`: devuelve una entrega por su ID.
+- `PATCH /api/deliveries/:deliveryId`: actualiza el estado o el repartidor.
+- `DELETE /api/deliveries/:deliveryId`: elimina una entrega.
+- `POST /api/users/:userId/documents`: recibe `document` y `documentType` como `multipart/form-data` y asocia el documento al usuario.
+- `POST /api/deliveries/:deliveryId/proof`: recibe el archivo `proof` como `multipart/form-data` y lo asocia a una entrega existente.
+
+Los documentos de usuario aceptan `IDENTITY`, `DRIVER_LICENSE` o `ADDRESS_PROOF`. Los archivos permitidos son PDF, JPG/JPEG y PNG, con un tamaño máximo de 5 MB. Se guardan en `uploads/users/documents/` o `uploads/deliveries/receipts/`; MongoDB conserva únicamente los metadatos. `uploads/` está excluida de Git.
 
 ### Pruebas funcionales
 
@@ -89,7 +101,13 @@ Las pruebas usan **Mocha**, **Chai** y **Supertest**. Ejecutalas desde la raíz 
 npm.cmd test
 ```
 
-La suite cubre usuarios; pedidos (listar, crear, buscar, actualizar estado y errores); mocks (generación en memoria, relaciones, carga y cantidad inválida); logger y Swagger UI. Antes de ejecutarla, asegurate de que MongoDB esté iniciado. `tests/setup.js` establece `MONGODB_URI=mongodb://127.0.0.1:27017/shipnow_test` y elimina los datos de esa base antes de cada caso y al terminar. La base `shipnow_test` está separada de la base local `shipnow`; no configures la variable de pruebas con la URI de desarrollo.
+La suite cubre usuarios, pedidos, mocks, logger, Swagger UI y cargas de archivos válidas e inválidas, incluida la entidad inexistente. Antes de ejecutarla, asegurate de que MongoDB esté iniciado. `tests/setup.js` usa `MONGODB_URI=mongodb://127.0.0.1:27017/shipnow_test` y `.test-uploads/` para aislar los datos y archivos de prueba; ambas ubicaciones se limpian al terminar. No configures la URI de pruebas con la base de desarrollo.
+
+La prueba de humo también se puede ejecutar sola y levanta una instancia temporal para verificar Swagger y las operaciones OpenAPI de Users, Orders, Deliveries, Mocks y Logger:
+
+```powershell
+npm.cmd run test:smoke
+```
 
 ### Prueba del logger
 
@@ -165,14 +183,16 @@ ShipNow/
 │   ├── config/
 │   │   ├── database.config.js          # Gestiona la conexión con MongoDB.
 │   │   ├── env.config.js               # Carga y valida PORT, MONGODB_URI y NODE_ENV.
-│   │   ├── logger.config.js             # Configura niveles, consola y archivos rotativos de Winston.
-│   │   └── swagger.config.js            # Define OpenAPI, esquemas y archivos de rutas a documentar.
+│   │   ├── logger.config.js            # Configura niveles, consola y archivos rotativos de Winston.
+│   │   ├── upload.config.js            # Configura tipos, tamaño, nombres y carpetas de Multer.
+│   │   └── swagger.config.js           # Define OpenAPI, esquemas y archivos de rutas a documentar.
 │   ├── constants/
-│   │   └── index.js                    # Define roles, estados y prioridades válidos.
+│   │   └── index.js                    # Define roles, estados, prioridades y tipos de documento.
 │   ├── controllers/
 │   │   ├── logger.controller.js        # Emite los niveles disponibles para probar el logger.
 │   │   ├── mock.controller.js          # Atiende las solicitudes HTTP de mocking.
 │   │   ├── order.controller.js         # Atiende las solicitudes HTTP de pedidos.
+│   │   ├── delivery.controller.js      # Atiende la carga de comprobantes de entrega.
 │   │   ├── product.controller.js       # Atiende las solicitudes HTTP de productos.
 │   │   └── user.controller.js          # Atiende las solicitudes HTTP de usuarios.
 │   ├── errors/
@@ -182,22 +202,27 @@ ShipNow/
 │   │   ├── error.middleware.js         # Devuelve las respuestas de error en formato común.
 │   │   └── not-found.middleware.js     # Convierte rutas inexistentes en ROUTE_NOT_FOUND.
 │   ├── models/
-│   │   ├── delivery.model.js           # Define entregas y referencias a pedidos y repartidores.
+│   │   ├── delivery.model.js           # Define entregas, referencias y comprobantes asociados.
 │   │   ├── order.model.js              # Define pedidos y su referencia al usuario.
+│   │   ├── upload-metadata.schema.js   # Define metadatos asociados a archivos cargados.
 │   │   ├── product.model.js            # Define el esquema de productos.
-│   │   └── user.model.js               # Define el esquema de usuarios y sus roles.
+│   │   └── user.model.js               # Define usuarios, roles y documentos asociados.
 │   ├── repositories/
+│   │   ├── delivery.repository.js      # Consulta entregas y asocia comprobantes.
 │   │   ├── mock.repository.js          # Inserta usuarios, pedidos y entregas simulados.
 │   │   ├── order.repository.js         # Consulta, crea y actualiza pedidos en MongoDB.
 │   │   ├── product.repository.js       # Consulta productos y selecciona sus campos.
 │   │   └── user.repository.js          # Consulta usuarios y selecciona sus campos.
 │   ├── routes/
+│   │   ├── delivery.routes.js          # Publica la carga de comprobantes de entrega.
 │   │   ├── logger.routes.js            # Conecta /api/logger/test con su Controller.
 │   │   ├── mock.routes.js              # Conecta /api/mocks con su Controller.
 │   │   ├── order.routes.js             # Conecta /api/orders con su Controller.
 │   │   ├── product.routes.js           # Conecta /api/products con su Controller.
 │   │   └── user.routes.js              # Conecta /api/users con su Controller.
 │   └── services/
+│       ├── delivery.service.js         # Valida entregas y asocia metadatos del comprobante.
+│       ├── file-metadata.service.js    # Construye metadatos y limpia archivos temporales.
 │       ├── mock-data.factory.js        # Genera usuarios, repartidores, pedidos y entregas.
 │       ├── mock.service.js             # Valida qty y coordina la generación y carga de mocks.
 │       ├── order.service.js            # Aplica reglas de negocio para pedidos.
@@ -207,8 +232,11 @@ ShipNow/
 │   ├── setup.js                        # Configura la base aislada para pruebas.
 │   ├── users.test.js                   # Pruebas funcionales de usuarios.
 │   ├── orders.test.js                  # Pruebas funcionales de pedidos.
+│   ├── deliveries.test.js              # Pruebas funcionales de entregas.
 │   ├── mocks.test.js                   # Pruebas funcionales de generación y carga.
-│   └── platform.test.js                # Pruebas funcionales de logger y Swagger.
+│   ├── platform.test.js                # Pruebas funcionales de logger y Swagger.
+│   ├── smoke.test.js                   # Prueba de humo del servidor y la especificación.
+│   └── uploads.test.js                 # Pruebas funcionales de documentos y comprobantes.
 ├── .env.example                        # Plantilla de variables de entorno sin datos privados.
 ├── .gitignore                          # Excluye .env, node_modules y otros archivos locales.
 ├── package.json                        # Declara dependencias y comandos del proyecto.

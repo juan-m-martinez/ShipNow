@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { DELIVERY_STATUS } = require("../constants");
+const uploadMetadataSchema = require("./upload-metadata.schema");
 
 const deliverySchema = new mongoose.Schema(
   {
@@ -19,6 +20,7 @@ const deliverySchema = new mongoose.Schema(
       default: DELIVERY_STATUS.PENDING,
       required: true,
     },
+    proofs: { type: [uploadMetadataSchema], default: [] },
   },
   { timestamps: true },
 );

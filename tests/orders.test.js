@@ -80,4 +80,21 @@ describe("Orders API", function () {
     expect(invalid.status).to.equal(400);
     expect(invalid.body.error.code).to.equal("INVALID_ORDER_STATUS");
   });
+
+  it("actualiza y elimina pedidos", async function () {
+    const user = await createUser();
+    const order = await Order.create({ user: user._id, destination: "Calle 123" });
+
+    const updated = await request(app)
+      .put(`/api/orders/${order.id}`)
+      .send({ destination: "Calle 456", status: ORDER_STATUS.ASSIGNED });
+    expect(updated.status).to.equal(200);
+    expect(updated.body.order.destination).to.equal("Calle 456");
+    expect(updated.body.order.status).to.equal(ORDER_STATUS.ASSIGNED);
+
+    const deleted = await request(app).delete(`/api/orders/${order.id}`);
+    expect(deleted.status).to.equal(200);
+    expect(deleted.body.message).to.equal("Pedido eliminado");
+    expect(await Order.countDocuments()).to.equal(0);
+  });
 });

@@ -8,10 +8,18 @@ const findAllUsers = async () => {
 };
 
 const findUserById = async (id) => {
-  return User.findById(id).select("_id").lean();
+  return User.findById(id).select("_id role").lean();
 };
+
+const appendUserDocument = async (id, metadata) =>
+  User.findByIdAndUpdate(
+    id,
+    { $push: { documents: metadata } },
+    { returnDocument: "after", runValidators: true },
+  ).lean();
 
 module.exports = {
   findAllUsers,
   findUserById,
+  appendUserDocument,
 };

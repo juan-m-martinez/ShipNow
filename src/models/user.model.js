@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { USER_ROLE } = require("../constants");
+const uploadMetadataSchema = require("./upload-metadata.schema");
 
 const userSchema = new mongoose.Schema(
   {
@@ -16,6 +17,7 @@ const userSchema = new mongoose.Schema(
       enum: Object.values(USER_ROLE),
       default: USER_ROLE.USER,
     },
+    documents: { type: [uploadMetadataSchema], default: [] },
   },
   { timestamps: true },
 );
