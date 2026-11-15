@@ -7,6 +7,11 @@ const findAllUsers = async () => {
     .lean();
 };
 
+const findUserById = async (id) => {
+  return User.findById(id).select("_id").lean();
+};
+
 module.exports = {
   findAllUsers,
+  findUserById,
 };

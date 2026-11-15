@@ -8,9 +8,7 @@ const router = express.Router();
  * /api/mocks/users:
  *   get:
  *     tags:
- *  - Mocks
- *  - Orders
- *  - Deliveries
+ *       - Mocks
  *     summary: Generar usuarios de prueba
  *     description: Devuelve usuarios simulados sin guardarlos en MongoDB.
  *     parameters:
@@ -44,7 +42,6 @@ const router = express.Router();
  *             schema:
  *               $ref: "#/components/schemas/ErrorResponse"
  */
-
 /**
  * @openapi
  * /api/mocks/couriers:

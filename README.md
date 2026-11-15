@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entrega Módulo 5 — Documentación de API con Swagger
+## Pre-entregas Módulos 5 y 6 — Swagger y pruebas funcionales
 
 ## Descripción
 
@@ -19,6 +19,7 @@ API REST desarrollada con Node.js, Express y MongoDB, implementada utilizando un
 - **winston-daily-rotate-file:** → separa los registros en archivos diarios y limita el período de conservación.
 - **swagger-jsdoc:** → genera la especificación OpenAPI a partir de las anotaciones de las rutas.
 - **swagger-ui-express:** → publica la documentación interactiva de la API.
+- **Mocha, Chai y Supertest:** → ejecutan pruebas funcionales HTTP y validan sus respuestas.
 - **npm:** → instala y administra las dependencias y los comandos del proyecto.
 - **Git y GitHub:** → controlan las versiones del código y alojan el repositorio remoto.
 
@@ -57,15 +58,15 @@ NODE_ENV=development
 Desde la raíz del proyecto:
 
 ```powershell
-npm install
-npm start
+npm.cmd install
+npm.cmd start
 ```
 
 ## Documentación de la API
 
 Con el servidor en ejecución, abrí [http://localhost:3000/api/docs](http://localhost:3000/api/docs) para consultar y probar la documentación interactiva de Swagger UI.
 
-La documentación incluye las rutas de Users, Products, Mocks y Logger, además de los esquemas reutilizables de usuario, producto, pedido, entrega, ítem de pedido y respuestas. Orders y Deliveries aparecen como etiquetas porque `/api/mocks/data` genera esos registros relacionados; el proyecto todavía no tiene endpoints propios para consultar o modificar pedidos y entregas. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
+La documentación incluye las rutas de Users, Orders, Products, Mocks y Logger, además de los esquemas reutilizables de usuario, producto, pedido, entrega, ítem de pedido y respuestas. Orders permite listar, crear, buscar por ID y actualizar el estado de un pedido. Deliveries se genera como parte de los conjuntos de mocks y todavía no cuenta con endpoints propios. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
 
 En Swagger, desplegá una operación, presioná **Try it out**, completá los parámetros si corresponde y elegí **Execute**. Para probar la carga de datos, usá `POST /api/mocks/seed` con `qty` en la query; no requiere body.
 
@@ -75,6 +76,20 @@ El endpoint `GET /api/logger/test` permite validar los niveles de logging y no r
 
 - `GET /api/products`: devuelve productos disponibles que tengan stock.
 - `GET /api/users`: devuelve la lista de usuarios.
+- `GET /api/orders`: devuelve los pedidos.
+- `POST /api/orders`: crea un pedido para un usuario existente. El body requiere `user` y `destination`; `priority` es opcional.
+- `GET /api/orders/:orderId`: devuelve un pedido por su ID.
+- `PATCH /api/orders/:orderId/status`: actualiza el estado con un valor permitido (`PENDING`, `ASSIGNED`, `IN_TRANSIT`, `DELIVERED` o `CANCELLED`).
+
+### Pruebas funcionales
+
+Las pruebas usan **Mocha**, **Chai** y **Supertest**. Ejecutalas desde la raíz con:
+
+```powershell
+npm.cmd test
+```
+
+La suite cubre usuarios; pedidos (listar, crear, buscar, actualizar estado y errores); mocks (generación en memoria, relaciones, carga y cantidad inválida); logger y Swagger UI. Antes de ejecutarla, asegurate de que MongoDB esté iniciado. `tests/setup.js` establece `MONGODB_URI=mongodb://127.0.0.1:27017/shipnow_test` y elimina los datos de esa base antes de cada caso y al terminar. La base `shipnow_test` está separada de la base local `shipnow`; no configures la variable de pruebas con la URI de desarrollo.
 
 ### Prueba del logger
 
@@ -157,6 +172,7 @@ ShipNow/
 │   ├── controllers/
 │   │   ├── logger.controller.js        # Emite los niveles disponibles para probar el logger.
 │   │   ├── mock.controller.js          # Atiende las solicitudes HTTP de mocking.
+│   │   ├── order.controller.js         # Atiende las solicitudes HTTP de pedidos.
 │   │   ├── product.controller.js       # Atiende las solicitudes HTTP de productos.
 │   │   └── user.controller.js          # Atiende las solicitudes HTTP de usuarios.
 │   ├── errors/
@@ -172,18 +188,27 @@ ShipNow/
 │   │   └── user.model.js               # Define el esquema de usuarios y sus roles.
 │   ├── repositories/
 │   │   ├── mock.repository.js          # Inserta usuarios, pedidos y entregas simulados.
+│   │   ├── order.repository.js         # Consulta, crea y actualiza pedidos en MongoDB.
 │   │   ├── product.repository.js       # Consulta productos y selecciona sus campos.
 │   │   └── user.repository.js          # Consulta usuarios y selecciona sus campos.
 │   ├── routes/
 │   │   ├── logger.routes.js            # Conecta /api/logger/test con su Controller.
 │   │   ├── mock.routes.js              # Conecta /api/mocks con su Controller.
+│   │   ├── order.routes.js             # Conecta /api/orders con su Controller.
 │   │   ├── product.routes.js           # Conecta /api/products con su Controller.
 │   │   └── user.routes.js              # Conecta /api/users con su Controller.
 │   └── services/
 │       ├── mock-data.factory.js        # Genera usuarios, repartidores, pedidos y entregas.
 │       ├── mock.service.js             # Valida qty y coordina la generación y carga de mocks.
+│       ├── order.service.js            # Aplica reglas de negocio para pedidos.
 │       ├── product.service.js          # Aplica reglas de negocio para productos.
 │       └── user.service.js             # Prepara los datos de usuarios para la respuesta.
+├── tests/
+│   ├── setup.js                        # Configura la base aislada para pruebas.
+│   ├── users.test.js                   # Pruebas funcionales de usuarios.
+│   ├── orders.test.js                  # Pruebas funcionales de pedidos.
+│   ├── mocks.test.js                   # Pruebas funcionales de generación y carga.
+│   └── platform.test.js                # Pruebas funcionales de logger y Swagger.
 ├── .env.example                        # Plantilla de variables de entorno sin datos privados.
 ├── .gitignore                          # Excluye .env, node_modules y otros archivos locales.
 ├── package.json                        # Declara dependencias y comandos del proyecto.
