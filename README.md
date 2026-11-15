@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entregas Módulos 5 y 6 — Swagger y pruebas funcionales
+## Pre-entrega Módulo 6 — Testing funcional con Mocha, Chai y Supertest
 
 ## Descripción
 
