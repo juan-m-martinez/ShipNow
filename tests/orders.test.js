@@ -97,4 +97,16 @@ describe("Orders API", function () {
     expect(deleted.body.message).to.equal("Pedido eliminado");
     expect(await Order.countDocuments()).to.equal(0);
   });
+
+  it("rechaza actualizar un pedido para un usuario inexistente", async function () {
+    const user = await createUser();
+    const order = await Order.create({ user: user._id, destination: "Calle 123" });
+
+    const response = await request(app)
+      .put(`/api/orders/${order.id}`)
+      .send({ user: "507f1f77bcf86cd799439011" });
+
+    expect(response.status).to.equal(404);
+    expect(response.body.error.code).to.equal("USER_NOT_FOUND");
+  });
 });

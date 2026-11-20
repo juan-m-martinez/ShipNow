@@ -1,5 +1,6 @@
 const express = require("express");
 const orderController = require("../controllers/order.controller");
+const { orderProofUpload } = require("../config/upload.config");
 
 const router = express.Router();
 
@@ -10,6 +11,14 @@ const router = express.Router();
  *     tags:
  *       - Orders
  *     summary: Listar pedidos
+ *     description: Devuelve una página de pedidos. Por defecto muestra 20 y admite hasta 100 por página.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
  *     responses:
  *       "200":
  *         description: Lista de pedidos.
@@ -22,6 +31,14 @@ const router = express.Router();
  *                   type: array
  *                   items:
  *                     $ref: "#/components/schemas/Order"
+ *                 pagination:
+ *                   $ref: "#/components/schemas/Pagination"
+ *       "400":
+ *         description: Parámetros page o limit inválidos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
  *       "500":
  *         description: Error interno del servidor.
  *         content:
@@ -225,5 +242,66 @@ router.delete("/:orderId", orderController.deleteOrder);
  *               $ref: "#/components/schemas/ErrorResponse"
  */
 router.patch("/:orderId/status", orderController.updateOrderStatus);
+
+/**
+ * @openapi
+ * /api/orders/{orderId}/proof:
+ *   post:
+ *     tags: [Orders]
+ *     summary: Cargar comprobante de pedido
+ *     description: Recibe un archivo PDF, JPG o PNG de hasta 5 MB en el campo proof. El backend asigna ORDER_RECEIPT; no se envía proofType.
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [proof]
+ *             properties:
+ *               proof:
+ *                 type: string
+ *                 format: binary
+ *                 description: Archivo PDF, JPG o PNG; máximo 5 MB.
+ *     responses:
+ *       "201":
+ *         description: Comprobante asociado al pedido.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 order: { $ref: "#/components/schemas/Order" }
+ *       "400":
+ *         description: Archivo faltante o campo/formato inválido.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+ *       "404":
+ *         description: Pedido inexistente.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+ *       "413":
+ *         description: Archivo superior a 5 MB.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+ *       "500":
+ *         description: Error al guardar archivo o metadatos.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+ */
+router.post(
+  "/:orderId/proof",
+  orderController.ensureOrderExists,
+  orderProofUpload.single("proof"),
+  orderController.uploadProof,
+);
 
 module.exports = router;

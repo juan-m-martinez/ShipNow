@@ -6,6 +6,7 @@ const AppError = require("../errors/app.error");
 const logger = require("../config/logger.config");
 const { DELIVERY_PROOF_TYPE, DELIVERY_STATUS, USER_ROLE } = require("../constants");
 const { buildFileMetadata, removeUploadedFile } = require("./file-metadata.service");
+const { parsePagination, buildPagination } = require("./pagination.service");
 
 const ensureDeliveryExists = async (id) => {
   if (!mongoose.isValidObjectId(id)) throw new AppError("INVALID_DATA");
@@ -14,7 +15,11 @@ const ensureDeliveryExists = async (id) => {
   return delivery;
 };
 
-const getDeliveries = async () => deliveryRepository.findAllDeliveries();
+const getDeliveries = async (query) => {
+  const pagination = parsePagination(query);
+  const { deliveries, total } = await deliveryRepository.findAllDeliveries(pagination);
+  return { deliveries, pagination: buildPagination({ ...pagination, total }) };
+};
 
 const getDeliveryById = async (id) => ensureDeliveryExists(id);
 

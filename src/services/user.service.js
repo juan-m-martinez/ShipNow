@@ -4,17 +4,22 @@ const AppError = require("../errors/app.error");
 const logger = require("../config/logger.config");
 const { USER_DOCUMENT_TYPE } = require("../constants");
 const { buildFileMetadata, removeUploadedFile } = require("./file-metadata.service");
+const { parsePagination, buildPagination } = require("./pagination.service");
 
-const getAllUsers = async () => {
-  const users = await userRepository.findAllUsers();
+const getAllUsers = async (query) => {
+  const pagination = parsePagination(query);
+  const { users, total } = await userRepository.findAllUsers(pagination);
 
-  return users.map((user) => ({
-    id: user._id.toString(),
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    createdAt: user.createdAt,
-  }));
+  return {
+    users: users.map((user) => ({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    })),
+    pagination: buildPagination({ ...pagination, total }),
+  };
 };
 
 const ensureUserExists = async (id) => {

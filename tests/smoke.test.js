@@ -1,5 +1,8 @@
 const { expect } = require("chai");
 const request = require("supertest");
+process.env.PORT ||= "3001";
+process.env.MONGODB_URI ||= "mongodb://127.0.0.1:27017/shipnow_test";
+process.env.NODE_ENV ||= "test";
 const app = require("../src/app");
 const swaggerSpec = require("../src/config/swagger.config");
 

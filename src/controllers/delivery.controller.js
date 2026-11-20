@@ -2,7 +2,7 @@ const deliveryService = require("../services/delivery.service");
 
 const getDeliveries = async (req, res, next) => {
   try {
-    return res.status(200).json({ deliveries: await deliveryService.getDeliveries() });
+    return res.status(200).json(await deliveryService.getDeliveries(req.query));
   } catch (error) {
     return next(error);
   }

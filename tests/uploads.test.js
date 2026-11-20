@@ -6,7 +6,13 @@ const app = require("../src/app");
 const User = require("../src/models/user.model");
 const Order = require("../src/models/order.model");
 const Delivery = require("../src/models/delivery.model");
-const { USER_ROLE, USER_DOCUMENT_TYPE, DELIVERY_PROOF_TYPE } = require("../src/constants");
+const userRepository = require("../src/repositories/user.repository");
+const {
+  USER_ROLE,
+  USER_DOCUMENT_TYPE,
+  DELIVERY_PROOF_TYPE,
+  ORDER_PROOF_TYPE,
+} = require("../src/constants");
 
 const testUploadsDirectory = path.resolve(__dirname, "../.test-uploads");
 const pdfFile = Buffer.from("%PDF-1.4\nShipNow test file\n%%EOF");
@@ -53,6 +59,15 @@ describe("Carga de documentos y comprobantes", function () {
 
     expect(response.status).to.equal(400);
     expect(response.body.error.code).to.equal("FILE_REQUIRED");
+  });
+
+  it("rechaza cargar un documento para un usuario inexistente", async function () {
+    const response = await request(app).post(
+      "/api/users/507f1f77bcf86cd799439011/documents",
+    );
+
+    expect(response.status).to.equal(404);
+    expect(response.body.error.code).to.equal("USER_NOT_FOUND");
   });
 
   it("rechaza un tipo de documento no permitido y elimina el archivo temporal", async function () {
@@ -108,6 +123,22 @@ describe("Carga de documentos y comprobantes", function () {
     expect(response.body.error.code).to.equal("FILE_TOO_LARGE");
   });
 
+  it("devuelve FILE_SAVE_FAILED si no puede guardar los metadatos", async function () {
+    const user = await createUser();
+    const originalAppendDocument = userRepository.appendUserDocument;
+    userRepository.appendUserDocument = async () => {
+      throw new Error("Fallo de persistencia de prueba");
+    };
+
+    try {
+      const response = await uploadDocument(user.id);
+      expect(response.status).to.equal(500);
+      expect(response.body.error.code).to.equal("FILE_SAVE_FAILED");
+    } finally {
+      userRepository.appendUserDocument = originalAppendDocument;
+    }
+  });
+
   it("guarda el comprobante en la entrega y reporta cuando la entrega no existe", async function () {
     const user = await createUser();
     const order = await Order.create({ user: user.id, destination: "Calle 123" });
@@ -127,5 +158,30 @@ describe("Carga de documentos y comprobantes", function () {
     const missing = await request(app).post("/api/deliveries/507f1f77bcf86cd799439011/proof");
     expect(missing.status).to.equal(404);
     expect(missing.body.error.code).to.equal("DELIVERY_NOT_FOUND");
+  });
+
+  it("guarda un comprobante de pedido y rechaza un pedido inexistente", async function () {
+    const user = await createUser();
+    const order = await Order.create({ user: user.id, destination: "Calle 456" });
+
+    const saved = await request(app)
+      .post(`/api/orders/${order.id}/proof`)
+      .attach("proof", pdfFile, {
+        filename: "pedido.pdf",
+        contentType: "application/pdf",
+      });
+
+    expect(saved.status).to.equal(201);
+    expect(saved.body.order.proofs).to.have.lengthOf(1);
+    expect(saved.body.order.proofs[0].documentType).to.equal(ORDER_PROOF_TYPE.RECEIPT);
+
+    const missing = await request(app)
+      .post("/api/orders/507f1f77bcf86cd799439011/proof")
+      .attach("proof", pdfFile, {
+        filename: "pedido.pdf",
+        contentType: "application/pdf",
+      });
+    expect(missing.status).to.equal(404);
+    expect(missing.body.error.code).to.equal("ORDER_NOT_FOUND");
   });
 });

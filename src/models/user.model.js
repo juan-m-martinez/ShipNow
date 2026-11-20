@@ -22,4 +22,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+userSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("User", userSchema);

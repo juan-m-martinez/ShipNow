@@ -1,6 +1,6 @@
 # ShipNow API
 
-## Pre-entrega Módulo 7 — Carga de archivos, documentos y comprobantes
+## Pre-entrega Módulo 8 — Performance, escalabilidad y Docker
 
 ## Descripción
 
@@ -50,6 +50,8 @@ En `.env`, configurá:
 PORT=3000
 MONGODB_URI=mongodb://127.0.0.1:27017/shipnow
 NODE_ENV=development
+LOG_LEVEL=debug
+UPLOADS_DIR=./uploads
 ```
 
 `.env` contiene la configuración local y no debe subirse al repositorio.
@@ -67,7 +69,7 @@ npm.cmd start
 
 Con el servidor en ejecución, abrí [http://localhost:3000/api/docs](http://localhost:3000/api/docs) para consultar y probar la documentación interactiva de Swagger UI.
 
-La documentación incluye las rutas de Users, Orders, Products, Mocks, Deliveries y Logger, además de los esquemas reutilizables de usuario, pedido, entrega, archivos y respuestas. Orders y Deliveries permiten crear, listar, consultar, actualizar y eliminar registros. Deliveries también permite asociar comprobantes. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
+La documentación incluye las rutas de Users, Orders, Products, Mocks, Deliveries y Logger, además de los esquemas reutilizables de usuario, pedido, entrega, archivos y respuestas. Orders y Deliveries permiten crear, listar, consultar, actualizar y eliminar registros. Orders y Deliveries también permiten asociar comprobantes. El esquema `OrderItem` es documental y no forma parte del modelo actual de pedido.
 
 En Swagger, desplegá una operación, presioná **Try it out**, completá los parámetros si corresponde y elegí **Execute**. Para probar la carga de datos, usá `POST /api/mocks/seed` con `qty` en la query; no requiere body.
 
@@ -76,14 +78,16 @@ El endpoint `GET /api/logger/test` permite validar los niveles de logging y no r
 ## Endpoints disponibles
 
 - `GET /api/products`: devuelve productos disponibles que tengan stock.
-- `GET /api/users`: devuelve la lista de usuarios.
-- `GET /api/orders`: devuelve los pedidos.
+- `GET /api/health`: informa el estado, entorno, uptime y timestamp.
+- `GET /api/users`: devuelve una página de usuarios (`page`, `limit`).
+- `GET /api/orders`: devuelve una página de pedidos (`page`, `limit`).
 - `POST /api/orders`: crea un pedido para un usuario existente. El body requiere `user` y `destination`; `priority` es opcional.
 - `GET /api/orders/:orderId`: devuelve un pedido por su ID.
 - `PUT /api/orders/:orderId`: actualiza los campos válidos de un pedido.
 - `PATCH /api/orders/:orderId/status`: actualiza el estado con un valor permitido (`PENDING`, `ASSIGNED`, `IN_TRANSIT`, `DELIVERED` o `CANCELLED`).
 - `DELETE /api/orders/:orderId`: elimina un pedido.
-- `GET /api/deliveries`: devuelve las entregas.
+- `POST /api/orders/:orderId/proof`: recibe el archivo `proof` como `multipart/form-data` y lo asocia al pedido existente.
+- `GET /api/deliveries`: devuelve una página de entregas (`page`, `limit`).
 - `POST /api/deliveries`: crea una entrega para un pedido existente, con repartidor opcional.
 - `GET /api/deliveries/:deliveryId`: devuelve una entrega por su ID.
 - `PATCH /api/deliveries/:deliveryId`: actualiza el estado o el repartidor.
@@ -91,17 +95,36 @@ El endpoint `GET /api/logger/test` permite validar los niveles de logging y no r
 - `POST /api/users/:userId/documents`: recibe `document` y `documentType` como `multipart/form-data` y asocia el documento al usuario.
 - `POST /api/deliveries/:deliveryId/proof`: recibe el archivo `proof` como `multipart/form-data` y lo asocia a una entrega existente.
 
-Los documentos de usuario aceptan `IDENTITY`, `DRIVER_LICENSE` o `ADDRESS_PROOF`. Los archivos permitidos son PDF, JPG/JPEG y PNG, con un tamaño máximo de 5 MB. Se guardan en `uploads/users/documents/` o `uploads/deliveries/receipts/`; MongoDB conserva únicamente los metadatos. `uploads/` está excluida de Git.
+Los documentos de usuario aceptan `IDENTITY`, `DRIVER_LICENSE` o `ADDRESS_PROOF`. Los comprobantes reciben el tipo `ORDER_RECEIPT` para pedidos y `DELIVERY_RECEIPT` para entregas, asignado por el backend; no se envía un campo `proofType`. Los archivos permitidos son PDF, JPG/JPEG y PNG, con un tamaño máximo de 5 MB. Se guardan en `uploads/users/documents/`, `uploads/orders/receipts/` o `uploads/deliveries/receipts/`; MongoDB conserva únicamente los metadatos. `uploads/` está excluida de Git.
 
 ### Pruebas funcionales
 
-Las pruebas usan **Mocha**, **Chai** y **Supertest**. Ejecutalas desde la raíz con:
+Las pruebas usan **Mocha**, **Chai** y **Supertest**. Para preparar una instalación limpia con todas las dependencias de desarrollo:
+
+```powershell
+npm.cmd ci
+```
+
+Este comando instala también las dependencias de desarrollo, incluido Mocha en `node_modules/.bin`; `npm.cmd test` ejecuta esa instalación local.
+
+En Windows, iniciá el servicio **MongoDB Server** desde la aplicación **Servicios** antes de la suite. Si MongoDB se instaló con el nombre de servicio `MongoDB`, también podés comprobarlo e iniciarlo desde PowerShell:
+
+```powershell
+Get-Service MongoDB
+Start-Service MongoDB
+```
+
+Después ejecutá la suite desde la raíz:
 
 ```powershell
 npm.cmd test
 ```
 
 La suite cubre usuarios, pedidos, mocks, logger, Swagger UI y cargas de archivos válidas e inválidas, incluida la entidad inexistente. Antes de ejecutarla, asegurate de que MongoDB esté iniciado. `tests/setup.js` usa `MONGODB_URI=mongodb://127.0.0.1:27017/shipnow_test` y `.test-uploads/` para aislar los datos y archivos de prueba; ambas ubicaciones se limpian al terminar. No configures la URI de pruebas con la base de desarrollo.
+
+`tests/errors.test.js` verifica explícitamente `ROUTE_NOT_FOUND`, `USER_NOT_FOUND`, `INVALID_DATA`, `INTERNAL_SERVER_ERROR`, `MOCK_GENERATION_FAILED` y `MOCK_PERSISTENCE_FAILED`. Los errores de estado, archivo y entidad se validan en sus pruebas funcionales de pedidos, entregas y cargas.
+
+Los hooks limpian la base antes de cada caso y al terminar la suite, cierran la conexión y eliminan `.test-uploads/`. Ejecutá `npm.cmd test` dos veces seguidas, sin limpieza manual, para comprobar que ambas corridas son repetibles.
 
 La prueba de humo también se puede ejecutar sola y levanta una instancia temporal para verificar Swagger y las operaciones OpenAPI de Users, Orders, Deliveries, Mocks y Logger:
 
@@ -112,6 +135,69 @@ npm.cmd run test:smoke
 ### Prueba del logger
 
 `GET /api/logger/test` genera un evento en cada nivel (`debug`, `http`, `info`, `warning`, `error` y `fatal`) y devuelve una confirmación. Para probarlo, iniciá el servidor y abrí `http://localhost:3000/api/logger/test`.
+
+## Performance, producción y Docker
+
+### Listados y archivos
+
+`GET /api/users`, `GET /api/orders` y `GET /api/deliveries` aceptan `page` y `limit`. Por defecto devuelven 20 registros; `limit` admite de 1 a 100. La respuesta conserva la lista (`users`, `orders` o `deliveries`) y agrega `pagination` con `page`, `limit`, `total` y `totalPages`. Si los parámetros no son enteros válidos o `limit` supera 100, la API responde `400 INVALID_PAGINATION`. Las consultas seleccionan los campos necesarios cuando corresponde y usan `skip`/`limit` en MongoDB.
+
+Multer acepta PDF, JPG/JPEG y PNG, limita cada archivo a 5 MB y almacena los archivos en `uploads/` (o en `UPLOADS_DIR`). MongoDB guarda metadatos, no el contenido binario. `uploads/` está excluida de Git y de la imagen. En despliegues que necesiten conservar archivos tras recrear el contenedor, montá un volumen persistente en el directorio configurado; definí además una política operativa de retención y borrado.
+
+### Variables y ejecución local
+
+`.env.example` enumera la configuración. `PORT`, `MONGODB_URI` y `NODE_ENV` son obligatorias; la aplicación falla al iniciar con el nombre de las variables faltantes o inválidas. `NODE_ENV` admite `development`, `test` o `production`. `LOG_LEVEL` es opcional y acepta `fatal`, `error`, `warning`, `info`, `http` o `debug`; por defecto es `debug` en desarrollo y `info` en otros entornos. `UPLOADS_DIR` es opcional.
+
+En testing, la suite selecciona la base aislada `shipnow_test`. Para producción, definí `NODE_ENV=production`, `LOG_LEVEL=info` y la URI de MongoDB del entorno de despliegue.
+
+La aplicación no integra autenticación JWT ni servicios externos actualmente, por lo que no necesita `JWT_SECRET` ni URLs externas. Si se incorporan esas integraciones, deben configurarse como variables de entorno antes de activarlas; no se deben escribir secretos en el código.
+
+Para desarrollo local, creá `.env` desde la plantilla, configurá MongoDB local, instalá y ejecutá:
+
+```powershell
+Copy-Item .env.example .env
+npm.cmd ci
+npm.cmd start
+```
+
+Para ejecutar las pruebas funcionales, iniciá primero MongoDB y usá:
+
+```powershell
+npm.cmd test
+npm.cmd run test:smoke
+```
+
+La suite usa `shipnow_test`; no apunta a la base de desarrollo. Swagger permanece en `/api/docs` y el health check está en `/api/health`. El health check informa únicamente estado, entorno, uptime y timestamp.
+
+### Política de endpoints internos
+
+En `NODE_ENV=production`, `GET /api/mocks/*` y `GET /api/logger/test` no se montan y responden como rutas inexistentes (`404`). Sus operaciones también se retiran de la especificación publicada. Swagger UI y OpenAPI permanecen disponibles en `/api/docs` para consultar la API pública; no requieren autenticación. En `development` y `test`, mocks y logger test están habilitados para pruebas y desarrollo.
+
+### Construcción y ejecución con Docker
+
+Requisitos: Docker instalado y una instancia MongoDB accesible desde el contenedor. Construí la imagen desde la carpeta `ShipNow`:
+
+```powershell
+docker build -t shipnow:latest .
+```
+
+Creá un archivo local `.env.docker` con las variables de ejecución (no se copia a la imagen ni se sube a Git). Usá `NODE_ENV=production`, `PORT=3000`, `LOG_LEVEL=info` y una `MONGODB_URI` alcanzable desde el contenedor. Pasá ese archivo y publicá el puerto:
+
+```powershell
+docker run --name shipnow-api --env-file .env.docker -p 3000:3000 -v shipnow-uploads:/app/uploads shipnow:latest
+```
+
+Dentro de Docker, `127.0.0.1` apunta al mismo contenedor. Si MongoDB corre en la computadora anfitriona con Docker Desktop, configurá `MONGODB_URI=mongodb://host.docker.internal:27017/shipnow` en el archivo de entorno usado por el contenedor. Si MongoDB está en otro contenedor o servicio, usá su nombre de host y puerto en la misma red. Para cambiar el puerto interno, actualizá `PORT` y el mapeo `-p PUERTO_HOST:PUERTO_CONTENEDOR`.
+
+Con el contenedor en ejecución, comprobá:
+
+- `http://localhost:3000/api/health`
+- `http://localhost:3000/api/docs`
+- `http://localhost:3000/api/products`
+
+La imagen incluye solo dependencias de producción, corre como usuario sin privilegios y tiene un health check de Docker que consulta `/api/health`. `.dockerignore` evita copiar `node_modules`, `.env`, `.git`, logs, uploads, coverage y temporales. No subas al repositorio `.env`, `node_modules/`, `logs/`, `uploads/`, `.test-uploads/` ni `coverage/`; Git y Docker los excluyen.
+
+Winston escribe a consola y a `logs/`; los archivos de log rotan cada día y se conservan 14 días. En contenedores, consultá los registros de consola con `docker logs shipnow-api`; los archivos internos son efímeros salvo que se monte un volumen para `logs/`.
 
 ## Logging
 
@@ -182,7 +268,7 @@ ShipNow/
 │   ├── server.js                       # Conecta con MongoDB e inicia el servidor.
 │   ├── config/
 │   │   ├── database.config.js          # Gestiona la conexión con MongoDB.
-│   │   ├── env.config.js               # Carga y valida PORT, MONGODB_URI y NODE_ENV.
+│   │   ├── env.config.js               # Carga y valida PORT, MONGODB_URI, NODE_ENV y LOG_LEVEL.
 │   │   ├── logger.config.js            # Configura niveles, consola y archivos rotativos de Winston.
 │   │   ├── upload.config.js            # Configura tipos, tamaño, nombres y carpetas de Multer.
 │   │   └── swagger.config.js           # Define OpenAPI, esquemas y archivos de rutas a documentar.
@@ -191,7 +277,7 @@ ShipNow/
 │   ├── controllers/
 │   │   ├── logger.controller.js        # Emite los niveles disponibles para probar el logger.
 │   │   ├── mock.controller.js          # Atiende las solicitudes HTTP de mocking.
-│   │   ├── order.controller.js         # Atiende las solicitudes HTTP de pedidos.
+│   │   ├── order.controller.js         # Atiende pedidos y carga sus comprobantes.
 │   │   ├── delivery.controller.js      # Atiende la carga de comprobantes de entrega.
 │   │   ├── product.controller.js       # Atiende las solicitudes HTTP de productos.
 │   │   └── user.controller.js          # Atiende las solicitudes HTTP de usuarios.
@@ -203,21 +289,21 @@ ShipNow/
 │   │   └── not-found.middleware.js     # Convierte rutas inexistentes en ROUTE_NOT_FOUND.
 │   ├── models/
 │   │   ├── delivery.model.js           # Define entregas, referencias y comprobantes asociados.
-│   │   ├── order.model.js              # Define pedidos y su referencia al usuario.
+│   │   ├── order.model.js              # Define pedidos, referencia al usuario y comprobantes.
 │   │   ├── upload-metadata.schema.js   # Define metadatos asociados a archivos cargados.
 │   │   ├── product.model.js            # Define el esquema de productos.
 │   │   └── user.model.js               # Define usuarios, roles y documentos asociados.
 │   ├── repositories/
 │   │   ├── delivery.repository.js      # Consulta entregas y asocia comprobantes.
 │   │   ├── mock.repository.js          # Inserta usuarios, pedidos y entregas simulados.
-│   │   ├── order.repository.js         # Consulta, crea y actualiza pedidos en MongoDB.
+│   │   ├── order.repository.js         # Consulta pedidos y asocia metadatos de comprobantes.
 │   │   ├── product.repository.js       # Consulta productos y selecciona sus campos.
 │   │   └── user.repository.js          # Consulta usuarios y selecciona sus campos.
 │   ├── routes/
 │   │   ├── delivery.routes.js          # Publica la carga de comprobantes de entrega.
 │   │   ├── logger.routes.js            # Conecta /api/logger/test con su Controller.
 │   │   ├── mock.routes.js              # Conecta /api/mocks con su Controller.
-│   │   ├── order.routes.js             # Conecta /api/orders con su Controller.
+│   │   ├── order.routes.js             # Publica pedidos y su ruta de carga de comprobantes.
 │   │   ├── product.routes.js           # Conecta /api/products con su Controller.
 │   │   └── user.routes.js              # Conecta /api/users con su Controller.
 │   └── services/
@@ -225,11 +311,13 @@ ShipNow/
 │       ├── file-metadata.service.js    # Construye metadatos y limpia archivos temporales.
 │       ├── mock-data.factory.js        # Genera usuarios, repartidores, pedidos y entregas.
 │       ├── mock.service.js             # Valida qty y coordina la generación y carga de mocks.
-│       ├── order.service.js            # Aplica reglas de negocio para pedidos.
+│       ├── order.service.js            # Aplica reglas de negocio y asocia comprobantes.
+│       ├── pagination.service.js       # Valida page/limit y arma metadatos de paginación.
 │       ├── product.service.js          # Aplica reglas de negocio para productos.
 │       └── user.service.js             # Prepara los datos de usuarios para la respuesta.
 ├── tests/
 │   ├── setup.js                        # Configura la base aislada para pruebas.
+│   ├── errors.test.js                  # Prueba errores documentados y respuestas centralizadas.
 │   ├── users.test.js                   # Pruebas funcionales de usuarios.
 │   ├── orders.test.js                  # Pruebas funcionales de pedidos.
 │   ├── deliveries.test.js              # Pruebas funcionales de entregas.
@@ -238,6 +326,8 @@ ShipNow/
 │   ├── smoke.test.js                   # Prueba de humo del servidor y la especificación.
 │   └── uploads.test.js                 # Pruebas funcionales de documentos y comprobantes.
 ├── .env.example                        # Plantilla de variables de entorno sin datos privados.
+├── .dockerignore                       # Excluye archivos locales y generados de la imagen.
+├── Dockerfile                          # Construye y ejecuta la API como contenedor.
 ├── .gitignore                          # Excluye .env, node_modules y otros archivos locales.
 ├── package.json                        # Declara dependencias y comandos del proyecto.
 ├── package-lock.json                   # Registra las versiones instaladas de dependencias.

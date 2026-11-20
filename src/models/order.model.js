@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { ORDER_STATUS, ORDER_PRIORITY } = require("../constants");
+const uploadMetadataSchema = require("./upload-metadata.schema");
 
 const orderSchema = new mongoose.Schema(
   {
@@ -25,8 +26,11 @@ const orderSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    proofs: { type: [uploadMetadataSchema], default: [] },
   },
   { timestamps: true },
 );
+
+orderSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Order", orderSchema);

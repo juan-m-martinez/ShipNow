@@ -7,6 +7,10 @@ const ERROR_DICTIONARY = Object.freeze({
     statusCode: 400,
     message: "Los datos enviados no son válidos.",
   }),
+  INVALID_PAGINATION: Object.freeze({
+    statusCode: 400,
+    message: "page y limit deben ser números enteros válidos; limit no puede superar 100.",
+  }),
   USER_NOT_FOUND: Object.freeze({
     statusCode: 404,
     message: "No se encontró el usuario solicitado.",

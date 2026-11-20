@@ -22,10 +22,47 @@ const swaggerOptions = {
       { name: "Deliveries", description: "Operaciones de entregas" },
       { name: "Mocks", description: "Generación y carga de datos de prueba" },
       { name: "Logger", description: "Herramienta de validación del logger" },
+      { name: "Health", description: "Estado operativo de la API" },
     ],
+    paths: {
+      "/api/health": {
+        get: {
+          tags: ["Health"],
+          summary: "Comprobar estado de la API",
+          description: "Devuelve estado, entorno, uptime y hora actual; no incluye credenciales ni datos de conexión.",
+          responses: {
+            200: {
+              description: "La API está activa.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      status: { type: "string", example: "ok" },
+                      environment: { type: "string", example: "production" },
+                      uptime: { type: "integer", example: 120 },
+                      timestamp: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
 
     components: {
       schemas: {
+        Pagination: {
+          type: "object",
+          properties: {
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 20 },
+            total: { type: "integer", example: 63 },
+            totalPages: { type: "integer", example: 4 },
+          },
+        },
         MockDataset: {
           type: "object",
           properties: {
@@ -110,6 +147,10 @@ const swaggerOptions = {
             },
             priority: { type: "string", enum: ["LOW", "MEDIUM", "HIGH"] },
             destination: { type: "string" },
+            proofs: {
+              type: "array",
+              items: { $ref: "#/components/schemas/FileMetadata" },
+            },
           },
         },
         Delivery: {
@@ -163,6 +204,7 @@ const swaggerOptions = {
                 "DRIVER_LICENSE",
                 "ADDRESS_PROOF",
                 "DELIVERY_RECEIPT",
+                "ORDER_RECEIPT",
               ],
             },
             uploadedAt: { type: "string", format: "date-time" },
@@ -185,10 +227,11 @@ const swaggerOptions = {
             error: {
               type: "object",
               properties: {
-                code: { type: "string", example: "INVALID_MOCK_QTY" },
-                message: {
+                code: {
                   type: "string",
+                  description: "Código específico del error, por ejemplo USER_NOT_FOUND.",
                 },
+                message: { type: "string", description: "Descripción del error." },
               },
             },
           },

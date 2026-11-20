@@ -68,4 +68,19 @@ describe("Deliveries API", function () {
     expect(deleted.body.message).to.equal("Entrega eliminada");
     expect(await Delivery.countDocuments()).to.equal(0);
   });
+
+  it("valida el pedido relacionado y el estado de la entrega", async function () {
+    const missingOrder = await request(app).post("/api/deliveries").send({
+      order: "507f1f77bcf86cd799439011",
+    });
+    expect(missingOrder.status).to.equal(404);
+    expect(missingOrder.body.error.code).to.equal("ORDER_NOT_FOUND");
+
+    const delivery = await createDelivery();
+    const invalidStatus = await request(app)
+      .patch(`/api/deliveries/${delivery.id}`)
+      .send({ status: "INVALID" });
+    expect(invalidStatus.status).to.equal(400);
+    expect(invalidStatus.body.error.code).to.equal("INVALID_DELIVERY_STATUS");
+  });
 });

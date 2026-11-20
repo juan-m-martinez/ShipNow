@@ -10,6 +10,14 @@ const router = express.Router();
  *   get:
  *     tags: [Deliveries]
  *     summary: Listar entregas
+ *     description: Devuelve una página de entregas. Por defecto muestra 20 y admite hasta 100 por página.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
  *     responses:
  *       "200":
  *         description: Lista de entregas.
@@ -21,6 +29,13 @@ const router = express.Router();
  *                 deliveries:
  *                   type: array
  *                   items: { $ref: "#/components/schemas/Delivery" }
+ *                 pagination:
+ *                   $ref: "#/components/schemas/Pagination"
+ *       "400":
+ *         description: Parámetros page o limit inválidos.
+ *         content:
+ *           application/json:
+ *             schema: { $ref: "#/components/schemas/ErrorResponse" }
  *       "500":
  *         description: Error interno.
  *         content:
@@ -149,7 +164,7 @@ router.delete("/:deliveryId", deliveryController.deleteDelivery);
  *     tags:
  *       - Deliveries
  *     summary: Cargar comprobante de entrega
- *     description: Guarda un PDF, JPG o PNG y asocia sus metadatos a la entrega existente.
+ *     description: Guarda un PDF, JPG o PNG de hasta 5 MB en el campo proof y asocia sus metadatos a la entrega. El backend asigna DELIVERY_RECEIPT; no se envía proofType.
  *     parameters:
  *       - in: path
  *         name: deliveryId

@@ -25,4 +25,6 @@ const deliverySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+deliverySchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model("Delivery", deliverySchema);

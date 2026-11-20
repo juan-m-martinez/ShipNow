@@ -1,10 +1,16 @@
 const User = require("../models/user.model");
 
-const findAllUsers = async () => {
-  return User.find({})
-    .select("name email role createdAt")
-    .sort({ createdAt: -1 })
-    .lean();
+const findAllUsers = async ({ skip, limit }) => {
+  const [users, total] = await Promise.all([
+    User.find({})
+      .select("name email role createdAt")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments({}),
+  ]);
+  return { users, total };
 };
 
 const findUserById = async (id) => {

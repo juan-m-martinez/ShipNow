@@ -24,8 +24,7 @@ const colors = Object.freeze({
 
 winston.addColors(colors);
 
-const isDevelopment = config.nodeEnv === "development";
-const minimumLevel = isDevelopment ? "debug" : "info";
+const minimumLevel = config.logLevel;
 const logsDirectory = path.resolve(__dirname, "../../logs");
 
 fs.mkdirSync(logsDirectory, { recursive: true });

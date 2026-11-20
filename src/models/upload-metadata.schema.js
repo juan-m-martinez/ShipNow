@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { USER_DOCUMENT_TYPE, DELIVERY_PROOF_TYPE } = require("../constants");
+const { USER_DOCUMENT_TYPE, DELIVERY_PROOF_TYPE, ORDER_PROOF_TYPE } = require("../constants");
 
 const uploadMetadataSchema = new mongoose.Schema(
   {
@@ -13,6 +13,7 @@ const uploadMetadataSchema = new mongoose.Schema(
       enum: [
         ...Object.values(USER_DOCUMENT_TYPE),
         ...Object.values(DELIVERY_PROOF_TYPE),
+        ...Object.values(ORDER_PROOF_TYPE),
       ],
       required: true,
     },

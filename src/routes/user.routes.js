@@ -11,7 +11,14 @@ const router = express.Router();
  *     tags:
  *       - Users
  *     summary: Listar usuarios
- *     description: Devuelve los usuarios registrados.
+ *     description: Devuelve una página de usuarios. Por defecto muestra 20 y admite hasta 100 por página.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
  *     responses:
  *       "200":
  *         description: Lista de usuarios.
@@ -24,6 +31,14 @@ const router = express.Router();
  *                   type: array
  *                   items:
  *                     $ref: "#/components/schemas/User"
+ *                 pagination:
+ *                   $ref: "#/components/schemas/Pagination"
+ *       "400":
+ *         description: Parámetros page o limit inválidos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: "#/components/schemas/ErrorResponse"
  *       "500":
  *         description: Error interno del servidor.
  *         content:
@@ -41,7 +56,7 @@ router.get("/", userController.getAllUsers);
  *     tags:
  *       - Users
  *     summary: Cargar documento de usuario
- *     description: Guarda un PDF, JPG o PNG en el servidor y asocia sus metadatos al usuario.
+ *     description: Guarda un PDF, JPG o PNG de hasta 5 MB. documentType debe ser IDENTITY, DRIVER_LICENSE o ADDRESS_PROOF.
  *     parameters:
  *       - in: path
  *         name: userId

@@ -41,6 +41,10 @@ const DELIVERY_PROOF_TYPE = Object.freeze({
   RECEIPT: "DELIVERY_RECEIPT",
 });
 
+const ORDER_PROOF_TYPE = Object.freeze({
+  RECEIPT: "ORDER_RECEIPT",
+});
+
 module.exports = {
   PRODUCT_STATUS,
   ORDER_STATUS,
@@ -49,4 +53,5 @@ module.exports = {
   USER_ROLE,
   USER_DOCUMENT_TYPE,
   DELIVERY_PROOF_TYPE,
+  ORDER_PROOF_TYPE,
 };

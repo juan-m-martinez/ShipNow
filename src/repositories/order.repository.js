@@ -1,6 +1,12 @@
 const Order = require("../models/order.model");
 
-const findAllOrders = async () => Order.find({}).sort({ createdAt: -1 }).lean();
+const findAllOrders = async ({ skip, limit }) => {
+  const [orders, total] = await Promise.all([
+    Order.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.countDocuments({}),
+  ]);
+  return { orders, total };
+};
 
 const findOrderById = async (id) => Order.findById(id).lean();
 
@@ -10,6 +16,13 @@ const updateOrder = async (id, changes) =>
   Order.findByIdAndUpdate(id, changes, { returnDocument: "after", runValidators: true }).lean();
 
 const deleteOrder = async (id) => Order.findByIdAndDelete(id).lean();
+
+const appendOrderProof = async (id, metadata) =>
+  Order.findByIdAndUpdate(
+    id,
+    { $push: { proofs: metadata } },
+    { returnDocument: "after", runValidators: true },
+  ).lean();
 
 const updateOrderStatus = async (id, status) =>
   Order.findByIdAndUpdate(
@@ -24,5 +37,6 @@ module.exports = {
   createOrder,
   updateOrder,
   deleteOrder,
+  appendOrderProof,
   updateOrderStatus,
 };

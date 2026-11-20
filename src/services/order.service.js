@@ -3,8 +3,16 @@ const orderRepository = require("../repositories/order.repository");
 const userRepository = require("../repositories/user.repository");
 const AppError = require("../errors/app.error");
 const { ORDER_STATUS, ORDER_PRIORITY } = require("../constants");
+const { parsePagination, buildPagination } = require("./pagination.service");
+const logger = require("../config/logger.config");
+const { ORDER_PROOF_TYPE } = require("../constants");
+const { buildFileMetadata, removeUploadedFile } = require("./file-metadata.service");
 
-const getOrders = async () => orderRepository.findAllOrders();
+const getOrders = async (query) => {
+  const pagination = parsePagination(query);
+  const { orders, total } = await orderRepository.findAllOrders(pagination);
+  return { orders, pagination: buildPagination({ ...pagination, total }) };
+};
 
 const getOrderById = async (id) => {
   if (!mongoose.isValidObjectId(id)) throw new AppError("INVALID_DATA");
@@ -94,6 +102,25 @@ const deleteOrder = async (id) => {
   return order;
 };
 
+const addOrderProof = async (id, file) => {
+  if (!file) throw new AppError("FILE_REQUIRED");
+  try {
+    await getOrderById(id);
+    const order = await orderRepository.appendOrderProof(
+      id,
+      buildFileMetadata(file, ORDER_PROOF_TYPE.RECEIPT),
+    );
+    if (!order) throw new AppError("ORDER_NOT_FOUND");
+    logger.info(`Comprobante ${file.filename} asociado al pedido ${id}`);
+    return order;
+  } catch (error) {
+    await removeUploadedFile(file);
+    if (error instanceof AppError) throw error;
+    logger.error(`Error al asociar comprobante al pedido ${id}: ${error.message}`);
+    throw new AppError("FILE_SAVE_FAILED");
+  }
+};
+
 module.exports = {
   getOrders,
   getOrderById,
@@ -101,4 +128,5 @@ module.exports = {
   updateOrderStatus,
   updateOrder,
   deleteOrder,
+  addOrderProof,
 };

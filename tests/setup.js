@@ -20,10 +20,18 @@ exports.mochaHooks = {
   },
 
   afterAll: async function () {
-    if (mongoose.connection.readyState === 1) {
-      await mongoose.connection.dropDatabase();
-      await mongoose.disconnect();
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.dropDatabase();
+      }
+    } finally {
+      try {
+        if (mongoose.connection.readyState !== 0) {
+          await mongoose.disconnect();
+        }
+      } finally {
+        fs.rmSync(testUploadsDirectory, { recursive: true, force: true });
+      }
     }
-    fs.rmSync(testUploadsDirectory, { recursive: true, force: true });
   },
 };

@@ -1,7 +1,12 @@
 const Delivery = require("../models/delivery.model");
 
-const findAllDeliveries = async () =>
-  Delivery.find({}).sort({ createdAt: -1 }).lean();
+const findAllDeliveries = async ({ skip, limit }) => {
+  const [deliveries, total] = await Promise.all([
+    Delivery.find({}).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Delivery.countDocuments({}),
+  ]);
+  return { deliveries, total };
+};
 
 const findDeliveryById = async (id) => Delivery.findById(id).lean();
 

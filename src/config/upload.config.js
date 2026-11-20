@@ -52,5 +52,6 @@ module.exports = {
   MAX_FILE_SIZE,
   getUploadRoot,
   userDocumentUpload: createUpload(path.join("users", "documents")),
+  orderProofUpload: createUpload(path.join("orders", "receipts")),
   deliveryProofUpload: createUpload(path.join("deliveries", "receipts")),
 };
